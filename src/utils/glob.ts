@@ -9,7 +9,7 @@ export async function findFiles(pattern: string, cwd?: string): Promise<string[]
   const files = await globber.glob();
 
   if (cwd && cwd !== '.') {
-    return files.map(file => file.replace(`${cwd}/`, ''));
+    return files.map((file) => file.replace(`${cwd}/`, ''));
   }
 
   return files;

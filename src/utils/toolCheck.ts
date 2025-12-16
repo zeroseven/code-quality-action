@@ -24,8 +24,7 @@ const TOOL_INSTALL_INSTRUCTIONS: Record<ToolName, string> = {
     'Add "armin/editorconfig-cli" to composer.json require-dev and run composer install',
   'composer-normalize':
     'Add "ergebnis/composer-normalize" to composer.json require-dev and run composer install',
-  'typo3-rector':
-    'Add "ssch/typo3-rector" to composer.json require-dev and run composer install',
+  'typo3-rector': 'Add "ssch/typo3-rector" to composer.json require-dev and run composer install',
 };
 
 export async function checkToolAvailability(

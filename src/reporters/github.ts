@@ -65,12 +65,16 @@ export class GitHubReporter {
       .write();
 
     if (totalIssues > 0) {
-      core.info(`${colors.yellow}Found ${totalIssues} code quality issues across all tools${colors.reset}`);
+      core.info(
+        `${colors.yellow}Found ${totalIssues} code quality issues across all tools${colors.reset}`
+      );
 
       // Add detailed breakdown by tool
       for (const result of this.results) {
         if (result.issues.length > 0) {
-          core.startGroup(`${colors.cyan}${result.tool}: ${result.issues.length} issues${colors.reset}`);
+          core.startGroup(
+            `${colors.cyan}${result.tool}: ${result.issues.length} issues${colors.reset}`
+          );
 
           const errorCount = result.issues.filter((i) => i.severity === 'error').length;
           const warningCount = result.issues.filter((i) => i.severity === 'warning').length;

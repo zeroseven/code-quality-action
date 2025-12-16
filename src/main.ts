@@ -68,10 +68,7 @@ function parseInputs(): ActionInputs {
   };
 }
 
-async function runTool(
-  tool: ToolName,
-  inputs: ActionInputs
-): Promise<ToolResult | null> {
+async function runTool(tool: ToolName, inputs: ActionInputs): Promise<ToolResult | null> {
   try {
     // Check if tool is available
     const isAvailable = await checkToolAvailability(tool, inputs.workingDirectory);

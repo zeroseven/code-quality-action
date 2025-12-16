@@ -41,8 +41,7 @@ export class ComposerNormalizeRunner implements ToolRunner {
             file: composerPath,
             line: 1,
             severity: 'warning',
-            message:
-              'composer.json has formatting or ordering issues. See diff for details.',
+            message: 'composer.json has formatting or ordering issues. See diff for details.',
             rule: 'composer-normalize',
           });
         }

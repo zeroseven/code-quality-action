@@ -1364,7 +1364,7 @@ async function findFiles(pattern, cwd) {
     });
     const files = await globber.glob();
     if (cwd && cwd !== '.') {
-        return files.map(file => file.replace(`${cwd}/`, ''));
+        return files.map((file) => file.replace(`${cwd}/`, ''));
     }
     return files;
 }
