@@ -1,0 +1,47 @@
+{
+  "name": "code-quality-action",
+  "version": "1.0.0",
+  "description": "GitHub Action for code quality checks supporting PHP, JavaScript/TypeScript, CSS, and SCSS",
+  "main": "lib/main.js",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write '**/*.ts'",
+    "format:check": "prettier --check '**/*.ts'",
+    "lint": "eslint src/**/*.ts",
+    "package": "ncc build --source-map --license licenses.txt",
+    "all": "npm run build && npm run format && npm run lint && npm run package"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeroseven/code-quality-action.git"
+  },
+  "keywords": [
+    "github-action",
+    "code-quality",
+    "phpstan",
+    "phpmd",
+    "php-cs-fixer",
+    "eslint",
+    "stylelint",
+    "linter"
+  ],
+  "author": "zeroseven",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
+    "@actions/glob": "^0.4.0"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "@vercel/ncc": "^0.38.1",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "semantic-release": "^23.0.0",
+    "typescript": "^5.3.3"
+  }
+}

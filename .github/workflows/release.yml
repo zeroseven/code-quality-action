@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and package
+        run: npm run all
+
+      - name: Commit built files
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Check if there are changes in dist/
+          if ! git diff --quiet dist/; then
+            git add dist/
+            git commit -m "build: update dist files [skip ci]" || echo "No changes to commit"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          fi
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Update major version tag
+        if: success()
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -n "$LATEST_TAG" ]; then
+            # Extract major version (e.g., v1 from v1.2.3)
+            MAJOR_VERSION=$(echo $LATEST_TAG | sed -E 's/^v([0-9]+)\..*/v\1/')
+
+            echo "Updating $MAJOR_VERSION tag to point to $LATEST_TAG"
+
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git config --local user.name "github-actions[bot]"
+
+            # Force update the major version tag
+            git tag -fa $MAJOR_VERSION -m "Update $MAJOR_VERSION tag to $LATEST_TAG"
+            git push origin $MAJOR_VERSION --force
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,179 @@
+name: 'Code Quality'
+description: 'Run code quality checks for PHP, JavaScript/TypeScript, CSS, and SCSS'
+author: 'Jens Schaller'
+
+inputs:
+  tools:
+    description: 'Comma-separated list of tools to run (phpstan, phpmd, php-cs-fixer, eslint, stylelint, editorconfig, composer-normalize, typo3-rector) or "all". Note: typo3-rector must be explicitly specified.'
+    required: false
+    default: 'all'
+
+  php-paths:
+    description: 'Glob pattern for PHP files to check'
+    required: false
+    default: '**/*.php'
+
+  js-paths:
+    description: 'Glob pattern for JavaScript/TypeScript files to check'
+    required: false
+    default: '**/*.{js,ts,jsx,tsx}'
+
+  style-paths:
+    description: 'Glob pattern for CSS/SCSS files to check'
+    required: false
+    default: '**/*.{css,scss}'
+
+  phpstan-config:
+    description: 'Path to custom PHPStan configuration file'
+    required: false
+
+  phpmd-config:
+    description: 'Path to custom PHPMD configuration file'
+    required: false
+
+  php-cs-fixer-config:
+    description: 'Path to custom PHP-CS-Fixer configuration file'
+    required: false
+
+  eslint-config:
+    description: 'Path to custom ESLint configuration file'
+    required: false
+
+  stylelint-config:
+    description: 'Path to custom Stylelint configuration file'
+    required: false
+
+  editorconfig-config:
+    description: 'Path to custom .editorconfig file'
+    required: false
+
+  composer-normalize-config:
+    description: 'Path to custom composer.json file to normalize'
+    required: false
+
+  typo3-rector-config:
+    description: 'Path to custom rector.php configuration file'
+    required: false
+
+  fail-on-errors:
+    description: 'Fail the workflow when code quality issues are found'
+    required: false
+    default: 'true'
+
+  working-directory:
+    description: 'Working directory to run checks in'
+    required: false
+    default: '.'
+
+  php-version:
+    description: 'PHP version to use for checks'
+    required: false
+    default: '8.2'
+
+  node-version:
+    description: 'Node.js version to use for checks'
+    required: false
+    default: '20'
+
+  skip-php-setup:
+    description: 'Skip PHP setup (if already configured)'
+    required: false
+    default: 'false'
+
+  skip-node-setup:
+    description: 'Skip Node.js setup (if already configured)'
+    required: false
+    default: 'false'
+
+  skip-composer-install:
+    description: 'Skip composer install (if dependencies already installed)'
+    required: false
+    default: 'false'
+
+  skip-npm-install:
+    description: 'Skip npm install (if dependencies already installed)'
+    required: false
+    default: 'false'
+
+outputs:
+  status:
+    description: 'Overall status: "success" or "failed"'
+
+  total-issues:
+    description: 'Total number of code quality issues found'
+
+  report:
+    description: 'JSON summary of all findings'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup PHP
+      if: inputs.skip-php-setup != 'true'
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+
+    - name: Check for composer.json
+      id: check-composer
+      shell: bash
+      run: |
+        if [ -f "composer.json" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install PHP Dependencies
+      if: inputs.skip-composer-install != 'true' && steps.check-composer.outputs.exists == 'true'
+      shell: bash
+      run: composer install --prefer-dist --no-progress --no-interaction
+
+    - name: Setup Node.js
+      if: inputs.skip-node-setup != 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Check for package.json
+      id: check-package
+      shell: bash
+      run: |
+        if [ -f "package.json" ]; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install Node Dependencies
+      if: inputs.skip-npm-install != 'true' && steps.check-package.outputs.exists == 'true'
+      shell: bash
+      run: |
+        if [ -f "package-lock.json" ]; then
+          npm ci
+        elif [ -f "yarn.lock" ]; then
+          yarn install --frozen-lockfile
+        elif [ -f "pnpm-lock.yaml" ]; then
+          pnpm install --frozen-lockfile
+        else
+          npm install
+        fi
+
+    - name: Run Code Quality Checks
+      shell: bash
+      env:
+        INPUT_TOOLS: ${{ inputs.tools }}
+        INPUT_PHP-PATHS: ${{ inputs.php-paths }}
+        INPUT_JS-PATHS: ${{ inputs.js-paths }}
+        INPUT_STYLE-PATHS: ${{ inputs.style-paths }}
+        INPUT_PHPSTAN-CONFIG: ${{ inputs.phpstan-config }}
+        INPUT_PHPMD-CONFIG: ${{ inputs.phpmd-config }}
+        INPUT_PHP-CS-FIXER-CONFIG: ${{ inputs.php-cs-fixer-config }}
+        INPUT_ESLINT-CONFIG: ${{ inputs.eslint-config }}
+        INPUT_STYLELINT-CONFIG: ${{ inputs.stylelint-config }}
+        INPUT_EDITORCONFIG-CONFIG: ${{ inputs.editorconfig-config }}
+        INPUT_COMPOSER-NORMALIZE-CONFIG: ${{ inputs.composer-normalize-config }}
+        INPUT_TYPO3-RECTOR-CONFIG: ${{ inputs.typo3-rector-config }}
+        INPUT_FAIL-ON-ERRORS: ${{ inputs.fail-on-errors }}
+        INPUT_WORKING-DIRECTORY: ${{ inputs.working-directory }}
+      run: node ${{ github.action_path }}/dist/index.js
