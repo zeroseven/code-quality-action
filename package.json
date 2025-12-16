@@ -1,6 +1,6 @@
 {
   "name": "code-quality-action",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "GitHub Action for code quality checks supporting PHP, JavaScript/TypeScript, CSS, and SCSS",
   "main": "lib/main.js",
   "scripts": {
