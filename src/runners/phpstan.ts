@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { ToolRunner, RunnerConfig, ToolResult, Issue } from '../types';
+import { ToolRunner, RunnerConfig, ToolResult, Issue, PHPStanOutput } from '../types';
 import { executeCommand } from '../utils/exec';
 
 export class PHPStanRunner implements ToolRunner {
@@ -22,10 +22,10 @@ export class PHPStanRunner implements ToolRunner {
 
     if (result.stdout) {
       try {
-        const output = JSON.parse(result.stdout);
+        const output: PHPStanOutput = JSON.parse(result.stdout);
 
         if (output.files) {
-          for (const [file, fileData] of Object.entries<any>(output.files)) {
+          for (const [file, fileData] of Object.entries(output.files)) {
             if (fileData.messages) {
               for (const message of fileData.messages) {
                 issues.push({

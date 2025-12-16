@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { ToolRunner, RunnerConfig, ToolResult, Issue } from '../types';
+import { ToolRunner, RunnerConfig, ToolResult, Issue, PHPMDOutput } from '../types';
 import { executeCommand } from '../utils/exec';
 
 export class PHPMDRunner implements ToolRunner {
@@ -21,7 +21,7 @@ export class PHPMDRunner implements ToolRunner {
 
     if (result.stdout) {
       try {
-        const output = JSON.parse(result.stdout);
+        const output: PHPMDOutput = JSON.parse(result.stdout);
 
         if (output.files) {
           for (const fileData of output.files) {

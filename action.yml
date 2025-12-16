@@ -114,9 +114,20 @@ runs:
       with:
         php-version: ${{ inputs.php-version }}
 
+    - name: Cache Composer dependencies
+      if: inputs.skip-composer-install != 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.working-directory }}/vendor
+        key: composer-${{ runner.os }}-${{ inputs.php-version }}-${{ hashFiles(format('{0}/composer.lock', inputs.working-directory)) }}
+        restore-keys: |
+          composer-${{ runner.os }}-${{ inputs.php-version }}-
+          composer-${{ runner.os }}-
+
     - name: Check for composer.json
       id: check-composer
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         if [ -f "composer.json" ]; then
           echo "exists=true" >> $GITHUB_OUTPUT
@@ -127,6 +138,7 @@ runs:
     - name: Install PHP Dependencies
       if: inputs.skip-composer-install != 'true' && steps.check-composer.outputs.exists == 'true'
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: composer install --prefer-dist --no-progress --no-interaction
 
     - name: Setup Node.js
@@ -135,9 +147,20 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    - name: Cache Node dependencies
+      if: inputs.skip-npm-install != 'true'
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.working-directory }}/node_modules
+        key: node-${{ runner.os }}-${{ inputs.node-version }}-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory), format('{0}/yarn.lock', inputs.working-directory), format('{0}/pnpm-lock.yaml', inputs.working-directory)) }}
+        restore-keys: |
+          node-${{ runner.os }}-${{ inputs.node-version }}-
+          node-${{ runner.os }}-
+
     - name: Check for package.json
       id: check-package
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         if [ -f "package.json" ]; then
           echo "exists=true" >> $GITHUB_OUTPUT
@@ -148,6 +171,7 @@ runs:
     - name: Install Node Dependencies
       if: inputs.skip-npm-install != 'true' && steps.check-package.outputs.exists == 'true'
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         if [ -f "package-lock.json" ]; then
           npm ci

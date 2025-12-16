@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { ToolName, ToolResult } from './types';
 import { resolveConfig } from './config/resolver';
 import { findFiles } from './utils/glob';
+import { checkToolAvailability, logToolNotFound } from './utils/toolCheck';
 import { PHPStanRunner } from './runners/phpstan';
 import { PHPMDRunner } from './runners/phpmd';
 import { PHPCSFixerRunner } from './runners/php-cs-fixer';
@@ -72,6 +73,13 @@ async function runTool(
   inputs: ActionInputs
 ): Promise<ToolResult | null> {
   try {
+    // Check if tool is available
+    const isAvailable = await checkToolAvailability(tool, inputs.workingDirectory);
+    if (!isAvailable) {
+      logToolNotFound(tool);
+      return null;
+    }
+
     let runner;
     let filePaths: string[] = [];
     let configPath: string | undefined;

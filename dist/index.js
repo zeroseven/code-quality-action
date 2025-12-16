@@ -143,6 +143,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(7484));
 const resolver_1 = __nccwpck_require__(3257);
 const glob_1 = __nccwpck_require__(8258);
+const toolCheck_1 = __nccwpck_require__(7232);
 const phpstan_1 = __nccwpck_require__(6776);
 const phpmd_1 = __nccwpck_require__(4757);
 const php_cs_fixer_1 = __nccwpck_require__(7390);
@@ -190,6 +191,12 @@ function parseInputs() {
 }
 async function runTool(tool, inputs) {
     try {
+        // Check if tool is available
+        const isAvailable = await (0, toolCheck_1.checkToolAvailability)(tool, inputs.workingDirectory);
+        if (!isAvailable) {
+            (0, toolCheck_1.logToolNotFound)(tool);
+            return null;
+        }
         let runner;
         let filePaths = [];
         let configPath;
@@ -1366,6 +1373,103 @@ async function hasMatchingFiles(pattern, cwd) {
     return files.length > 0;
 }
 //# sourceMappingURL=glob.js.map
+
+/***/ }),
+
+/***/ 7232:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkToolAvailability = checkToolAvailability;
+exports.logToolNotFound = logToolNotFound;
+const core = __importStar(__nccwpck_require__(7484));
+const exec_1 = __nccwpck_require__(5717);
+const TOOL_COMMANDS = {
+    phpstan: 'vendor/bin/phpstan',
+    phpmd: 'vendor/bin/phpmd',
+    'php-cs-fixer': 'vendor/bin/php-cs-fixer',
+    eslint: 'npx eslint',
+    stylelint: 'npx stylelint',
+    editorconfig: 'vendor/bin/editorconfig-cli',
+    'composer-normalize': 'composer',
+    'typo3-rector': 'vendor/bin/rector',
+};
+const TOOL_INSTALL_INSTRUCTIONS = {
+    phpstan: 'Add "phpstan/phpstan" to composer.json require-dev and run composer install',
+    phpmd: 'Add "phpmd/phpmd" to composer.json require-dev and run composer install',
+    'php-cs-fixer': 'Add "friendsofphp/php-cs-fixer" to composer.json require-dev and run composer install',
+    eslint: 'Add "eslint" to package.json devDependencies and run npm install',
+    stylelint: 'Add "stylelint" to package.json devDependencies and run npm install',
+    editorconfig: 'Add "armin/editorconfig-cli" to composer.json require-dev and run composer install',
+    'composer-normalize': 'Add "ergebnis/composer-normalize" to composer.json require-dev and run composer install',
+    'typo3-rector': 'Add "ssch/typo3-rector" to composer.json require-dev and run composer install',
+};
+async function checkToolAvailability(tool, workingDirectory) {
+    const command = TOOL_COMMANDS[tool];
+    if (!command) {
+        return true; // Unknown tool, assume available
+    }
+    try {
+        // For npx commands, just check if the package exists
+        if (command.startsWith('npx ')) {
+            const packageName = command.replace('npx ', '').split(' ')[0];
+            const result = await (0, exec_1.executeCommand)('npx', [packageName, '--version'], workingDirectory);
+            return result.exitCode === 0;
+        }
+        // For composer commands, check if the binary exists
+        if (command === 'composer') {
+            const result = await (0, exec_1.executeCommand)('composer', ['--version'], workingDirectory);
+            return result.exitCode === 0;
+        }
+        // For vendor binaries, check if the file exists
+        const result = await (0, exec_1.executeCommand)(command, ['--version'], workingDirectory);
+        return result.exitCode === 0;
+    }
+    catch (error) {
+        return false;
+    }
+}
+function logToolNotFound(tool) {
+    const instructions = TOOL_INSTALL_INSTRUCTIONS[tool];
+    core.warning(`Tool '${tool}' is not available. ${instructions}`);
+    core.warning(`Skipping ${tool} checks.`);
+}
+//# sourceMappingURL=toolCheck.js.map
 
 /***/ }),
 

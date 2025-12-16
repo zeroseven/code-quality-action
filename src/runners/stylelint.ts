@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { ToolRunner, RunnerConfig, ToolResult, Issue } from '../types';
+import { ToolRunner, RunnerConfig, ToolResult, Issue, StylelintOutput } from '../types';
 import { executeCommand } from '../utils/exec';
 
 export class StylelintRunner implements ToolRunner {
@@ -24,7 +24,7 @@ export class StylelintRunner implements ToolRunner {
 
     if (result.stdout) {
       try {
-        const output = JSON.parse(result.stdout);
+        const output: StylelintOutput[] = JSON.parse(result.stdout);
 
         if (Array.isArray(output)) {
           for (const fileData of output) {
