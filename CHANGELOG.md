@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/zeroseven/code-quality-action/compare/v1.0.2...v1.1.0) (2025-12-16)
+
+
+### Features
+
+* add CI checks before release ([bfe7683](https://github.com/zeroseven/code-quality-action/commit/bfe768364629134aeb3b5b00352694cf62612c54))
+
 ## [1.0.2](https://github.com/zeroseven/code-quality-action/compare/v1.0.1...v1.0.2) (2025-12-16)
 
 
