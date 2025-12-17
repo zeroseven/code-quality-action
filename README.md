@@ -5,6 +5,7 @@ A comprehensive GitHub Action for code quality checks supporting PHP, JavaScript
 ## Features
 
 - **Zero Setup Required**: Automatically sets up PHP, Node.js, and installs dependencies
+- **Intelligent Caching**: Automatic dependency caching for faster CI runs (enabled by default)
 - **Multi-language support**: PHP, JavaScript, TypeScript, CSS, SCSS
 - **8 Powerful Tools**:
   - **PHPStan** - PHP static analysis
@@ -88,38 +89,133 @@ If you've already set up PHP/Node in previous steps:
     fail-on-errors: false
 ```
 
+## Caching
+
+The action includes **intelligent automatic caching** enabled by default to speed up CI runs by caching both Composer and npm/yarn/pnpm dependencies.
+
+### How It Works
+
+The caching system uses a hash-based approach:
+
+**For PHP/Composer:**
+
+- Generates cache keys based on `composer.lock` hash
+- Caches Composer's cache directory by default (usually `~/.composer/cache`)
+- Optionally caches the `vendor/` directory for even faster installs
+- Fallback keys enable partial cache hits when lock file changes slightly
+
+**For Node.js:**
+
+- Generates cache keys based on `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml` hash
+- Automatically detects and caches npm, yarn, or pnpm cache directories
+- Optionally caches the `node_modules/` directory for faster installs
+- Separate cache keys per package manager
+
+### Default Behavior
+
+By default, caching is **enabled** and caches:
+
+- ✅ Composer cache directory
+- ✅ npm/yarn/pnpm cache directory
+- ❌ vendor/ directory (optional, disabled by default)
+- ❌ node_modules/ directory (optional, disabled by default)
+
+No configuration needed - it just works!
+
+### Custom Cache Configuration
+
+```yaml
+# Maximum caching - cache everything for fastest CI runs
+- name: Run Code Quality Checks
+  uses: zeroseven/code-quality-action@v1
+  with:
+    cache-composer-vendor: true
+    cache-node-modules: true
+```
+
+```yaml
+# Disable caching completely
+- name: Run Code Quality Checks
+  uses: zeroseven/code-quality-action@v1
+  with:
+    cache-enabled: false
+```
+
+```yaml
+# Custom cache key prefix (useful for multiple workflows)
+- name: Run Code Quality Checks
+  uses: zeroseven/code-quality-action@v1
+  with:
+    cache-key-prefix: 'my-workflow-cache'
+```
+
+```yaml
+# Cache only Composer dependencies
+- name: Run Code Quality Checks
+  uses: zeroseven/code-quality-action@v1
+  with:
+    cache-npm-cache: false
+```
+
+### Cache Benefits
+
+- **Faster CI runs**: Dependencies are cached between runs
+- **Intelligent matching**: Fallback keys enable partial cache hits
+- **Automatic invalidation**: Cache keys change when lock files change
+- **Multi-package manager**: Works with npm, yarn, and pnpm
+- **Monorepo support**: Respects `working-directory` input
+
+### Cache Size Considerations
+
+**Recommended (default):**
+
+- Cache directories: Small size, good speed improvement
+- Best for most projects
+
+**Maximum caching:**
+
+- Cache directories + vendor/ + node_modules/: Large size, maximum speed
+- Best for large projects with many dependencies
+- Consider GitHub's cache size limits (10 GB per repository)
+
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `tools` | Comma-separated list of tools to run or "all" (Note: typo3-rector must be explicitly specified) | No | `all` |
-| `php-paths` | Glob pattern for PHP files | No | `**/*.php` |
-| `js-paths` | Glob pattern for JS/TS files | No | `**/*.{js,ts,jsx,tsx}` |
-| `style-paths` | Glob pattern for CSS/SCSS files | No | `**/*.{css,scss}` |
-| `phpstan-config` | Path to custom PHPStan config | No | - |
-| `phpmd-config` | Path to custom PHPMD config | No | - |
-| `php-cs-fixer-config` | Path to custom PHP-CS-Fixer config | No | - |
-| `eslint-config` | Path to custom ESLint config | No | - |
-| `stylelint-config` | Path to custom Stylelint config | No | - |
-| `editorconfig-config` | Path to custom .editorconfig file | No | - |
-| `composer-normalize-config` | Path to custom composer.json file | No | - |
-| `typo3-rector-config` | Path to custom rector.php config | No | - |
-| `fail-on-errors` | Fail workflow when issues are found | No | `true` |
-| `working-directory` | Working directory to run checks in | No | `.` |
-| `php-version` | PHP version to use | No | `8.2` |
-| `node-version` | Node.js version to use | No | `20` |
-| `skip-php-setup` | Skip PHP setup step | No | `false` |
-| `skip-node-setup` | Skip Node.js setup step | No | `false` |
-| `skip-composer-install` | Skip composer install step | No | `false` |
-| `skip-npm-install` | Skip npm install step | No | `false` |
+| Input                       | Description                                                                                     | Required | Default                |
+| --------------------------- | ----------------------------------------------------------------------------------------------- | -------- | ---------------------- |
+| `tools`                     | Comma-separated list of tools to run or "all" (Note: typo3-rector must be explicitly specified) | No       | `all`                  |
+| `php-paths`                 | Glob pattern for PHP files                                                                      | No       | `**/*.php`             |
+| `js-paths`                  | Glob pattern for JS/TS files                                                                    | No       | `**/*.{js,ts,jsx,tsx}` |
+| `style-paths`               | Glob pattern for CSS/SCSS files                                                                 | No       | `**/*.{css,scss}`      |
+| `phpstan-config`            | Path to custom PHPStan config                                                                   | No       | -                      |
+| `phpmd-config`              | Path to custom PHPMD config                                                                     | No       | -                      |
+| `php-cs-fixer-config`       | Path to custom PHP-CS-Fixer config                                                              | No       | -                      |
+| `eslint-config`             | Path to custom ESLint config                                                                    | No       | -                      |
+| `stylelint-config`          | Path to custom Stylelint config                                                                 | No       | -                      |
+| `editorconfig-config`       | Path to custom .editorconfig file                                                               | No       | -                      |
+| `composer-normalize-config` | Path to custom composer.json file                                                               | No       | -                      |
+| `typo3-rector-config`       | Path to custom rector.php config                                                                | No       | -                      |
+| `fail-on-errors`            | Fail workflow when issues are found                                                             | No       | `true`                 |
+| `working-directory`         | Working directory to run checks in                                                              | No       | `.`                    |
+| `php-version`               | PHP version to use                                                                              | No       | `8.2`                  |
+| `node-version`              | Node.js version to use                                                                          | No       | `20`                   |
+| `skip-php-setup`            | Skip PHP setup step                                                                             | No       | `false`                |
+| `skip-node-setup`           | Skip Node.js setup step                                                                         | No       | `false`                |
+| `skip-composer-install`     | Skip composer install step                                                                      | No       | `false`                |
+| `skip-npm-install`          | Skip npm install step                                                                           | No       | `false`                |
+| `cache-enabled`             | Enable automatic caching                                                                        | No       | `true`                 |
+| `cache-key-prefix`          | Prefix for cache keys (useful for multiple workflows)                                           | No       | `code-quality-action`  |
+| `cache-composer-cache`      | Cache Composer cache directory                                                                  | No       | `true`                 |
+| `cache-composer-vendor`     | Cache vendor directory (increases cache size)                                                   | No       | `false`                |
+| `cache-npm-cache`           | Cache npm/yarn/pnpm cache directory                                                             | No       | `true`                 |
+| `cache-node-modules`        | Cache node_modules directory (increases cache size)                                             | No       | `false`                |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
-| `status` | Overall status: "success" or "failed" |
-| `total-issues` | Total number of issues found |
-| `report` | JSON summary of all findings |
+| Output         | Description                           |
+| -------------- | ------------------------------------- |
+| `status`       | Overall status: "success" or "failed" |
+| `total-issues` | Total number of issues found          |
+| `report`       | JSON summary of all findings          |
 
 ## Configuration
 
@@ -141,6 +237,7 @@ You can provide your own configuration files:
 2. Reference them in the action inputs
 
 **Config Priority:**
+
 1. Custom config specified in inputs (highest priority)
 2. Config files in repository root
 3. Default configs provided by the action (lowest priority)
@@ -207,14 +304,14 @@ Issues are reported as GitHub annotations directly on your PR:
 
 A detailed summary table is added to the workflow summary:
 
-| Tool | Status | Issues |
-|------|--------|--------|
-| PHPStan | PASS | 0 |
-| PHPMD | FAIL | 5 |
-| PHP-CS-Fixer | PASS | 0 |
-| ESLint | FAIL | 12 |
-| Stylelint | PASS | 0 |
-| | **Total** | **17** |
+| Tool         | Status    | Issues |
+| ------------ | --------- | ------ |
+| PHPStan      | PASS      | 0      |
+| PHPMD        | FAIL      | 5      |
+| PHP-CS-Fixer | PASS      | 0      |
+| ESLint       | FAIL      | 12     |
+| Stylelint    | PASS      | 0      |
+|              | **Total** | **17** |
 
 ## Selecting Specific Tools
 
@@ -228,6 +325,7 @@ Run only specific tools by providing a comma-separated list:
 ```
 
 Available tools:
+
 - `phpstan` - PHP static analysis
 - `phpmd` - PHP Mess Detector
 - `php-cs-fixer` - PHP coding standards
@@ -251,16 +349,19 @@ TYPO3 Rector is opt-in only and must be explicitly specified:
 ### New Tools Overview
 
 **EditorConfig CLI**
+
 - Validates files against `.editorconfig` rules
 - Checks indentation, line endings, charset, etc.
 - Runs automatically on all files when included in tools list
 
 **Composer Normalize**
+
 - Ensures `composer.json` follows a consistent format
 - Validates JSON structure and property ordering
 - Helps maintain clean dependency files
 
 **TYPO3 Rector**
+
 - TYPO3-specific automated refactoring
 - Helps upgrade TYPO3 extensions
 - Suggests code modernization opportunities
@@ -276,6 +377,7 @@ npm run all
 ```
 
 This will:
+
 1. Compile TypeScript
 2. Format code
 3. Lint code
@@ -291,6 +393,7 @@ code-quality-action/
 │   ├── types.ts             # TypeScript interfaces
 │   ├── runners/             # Tool runners
 │   ├── config/              # Config resolution
+│   ├── cache/               # Cache management
 │   ├── reporters/           # GitHub reporter
 │   └── utils/               # Utilities
 ├── dist/                    # Packaged output (committed)

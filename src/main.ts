@@ -12,6 +12,8 @@ import { EditorConfigRunner } from './runners/editorconfig';
 import { ComposerNormalizeRunner } from './runners/composer-normalize';
 import { Typo3RectorRunner } from './runners/typo3-rector';
 import { GitHubReporter } from './reporters/github';
+import { CacheManager } from './cache/CacheManager';
+import { Logger } from './utils/logger';
 
 interface ActionInputs {
   tools: ToolName[];
@@ -28,6 +30,12 @@ interface ActionInputs {
   typo3RectorConfig?: string;
   failOnErrors: boolean;
   workingDirectory: string;
+  cacheEnabled: boolean;
+  cacheKeyPrefix: string;
+  cacheComposerCache: boolean;
+  cacheComposerVendor: boolean;
+  cacheNpmCache: boolean;
+  cacheNodeModules: boolean;
 }
 
 function parseInputs(): ActionInputs {
@@ -65,6 +73,12 @@ function parseInputs(): ActionInputs {
     typo3RectorConfig: core.getInput('typo3-rector-config') || undefined,
     failOnErrors: core.getInput('fail-on-errors').toLowerCase() !== 'false',
     workingDirectory: core.getInput('working-directory') || '.',
+    cacheEnabled: core.getInput('cache-enabled').toLowerCase() !== 'false',
+    cacheKeyPrefix: core.getInput('cache-key-prefix') || 'code-quality-action',
+    cacheComposerCache: core.getInput('cache-composer-cache').toLowerCase() !== 'false',
+    cacheComposerVendor: core.getInput('cache-composer-vendor').toLowerCase() === 'true',
+    cacheNpmCache: core.getInput('cache-npm-cache').toLowerCase() !== 'false',
+    cacheNodeModules: core.getInput('cache-node-modules').toLowerCase() === 'true',
   };
 }
 
@@ -166,13 +180,11 @@ async function runTool(tool: ToolName, inputs: ActionInputs): Promise<ToolResult
 
     core.info(`Found ${filePaths.length} files to check with ${tool}`);
 
-    const result = await runner.run({
+    return await runner.run({
       configPath,
       filePaths,
       workingDirectory: inputs.workingDirectory,
     });
-
-    return result;
   } catch (error) {
     core.error(`Error running ${tool}: ${error}`);
     return {
@@ -185,8 +197,30 @@ async function runTool(tool: ToolName, inputs: ActionInputs): Promise<ToolResult
 }
 
 async function run(): Promise<void> {
+  const logger = new Logger();
+  let cacheManager: CacheManager | null = null;
+
   try {
     const inputs = parseInputs();
+
+    // Initialize cache manager
+    if (inputs.cacheEnabled) {
+      cacheManager = new CacheManager(
+        {
+          enabled: inputs.cacheEnabled,
+          keyPrefix: inputs.cacheKeyPrefix,
+          composerCache: inputs.cacheComposerCache,
+          composerVendor: inputs.cacheComposerVendor,
+          npmCache: inputs.cacheNpmCache,
+          nodeModules: inputs.cacheNodeModules,
+        },
+        inputs.workingDirectory,
+        logger
+      );
+
+      // Restore cache before running tools
+      await cacheManager.restore();
+    }
 
     core.info('Starting code quality checks...');
     core.info(`Tools to run: ${inputs.tools.join(', ')}`);
@@ -210,6 +244,11 @@ async function run(): Promise<void> {
     core.setOutput('total-issues', totalIssues);
     core.setOutput('status', totalIssues > 0 ? 'failed' : 'success');
     core.setOutput('report', report);
+
+    // Save cache after running tools (only if no cache hit)
+    if (cacheManager) {
+      await cacheManager.save();
+    }
 
     if (inputs.failOnErrors && totalIssues > 0) {
       core.setFailed(`Found ${totalIssues} code quality issues`);

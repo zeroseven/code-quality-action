@@ -95,15 +95,48 @@ inputs:
     required: false
     default: 'false'
 
+  cache-enabled:
+    description: 'Enable automatic caching of dependencies and cache directories'
+    required: false
+    default: 'true'
+
+  cache-key-prefix:
+    description: 'Prefix for cache keys (useful for multiple workflows)'
+    required: false
+    default: 'code-quality-action'
+
+  cache-composer-cache:
+    description: 'Cache Composer cache directory'
+    required: false
+    default: 'true'
+
+  cache-composer-vendor:
+    description: 'Cache vendor directory (increases cache size but speeds up composer install)'
+    required: false
+    default: 'false'
+
+  cache-npm-cache:
+    description: 'Cache npm/yarn/pnpm cache directory'
+    required: false
+    default: 'true'
+
+  cache-node-modules:
+    description: 'Cache node_modules directory (increases cache size but speeds up npm install)'
+    required: false
+    default: 'false'
+
 outputs:
   status:
     description: 'Overall status: "success" or "failed"'
+    value: ${{ steps.run-checks.outputs.status }}
 
   total-issues:
     description: 'Total number of code quality issues found'
+    value: ${{ steps.run-checks.outputs.total-issues }}
 
   report:
     description: 'JSON summary of all findings'
+    value: ${{ steps.run-checks.outputs.report }}
 
 runs:
   using: 'composite'
@@ -113,16 +146,6 @@ runs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.php-version }}
-
-    - name: Cache Composer dependencies
-      if: inputs.skip-composer-install != 'true'
-      uses: actions/cache@v4
-      with:
-        path: ${{ inputs.working-directory }}/vendor
-        key: composer-${{ runner.os }}-${{ inputs.php-version }}-${{ hashFiles(format('{0}/composer.lock', inputs.working-directory)) }}
-        restore-keys: |
-          composer-${{ runner.os }}-${{ inputs.php-version }}-
-          composer-${{ runner.os }}-
 
     - name: Check for composer.json
       id: check-composer
@@ -146,16 +169,6 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-
-    - name: Cache Node dependencies
-      if: inputs.skip-npm-install != 'true'
-      uses: actions/cache@v4
-      with:
-        path: ${{ inputs.working-directory }}/node_modules
-        key: node-${{ runner.os }}-${{ inputs.node-version }}-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory), format('{0}/yarn.lock', inputs.working-directory), format('{0}/pnpm-lock.yaml', inputs.working-directory)) }}
-        restore-keys: |
-          node-${{ runner.os }}-${{ inputs.node-version }}-
-          node-${{ runner.os }}-
 
     - name: Check for package.json
       id: check-package
@@ -184,6 +197,7 @@ runs:
         fi
 
     - name: Run Code Quality Checks
+      id: run-checks
       shell: bash
       env:
         INPUT_TOOLS: ${{ inputs.tools }}
@@ -200,4 +214,10 @@ runs:
         INPUT_TYPO3-RECTOR-CONFIG: ${{ inputs.typo3-rector-config }}
         INPUT_FAIL-ON-ERRORS: ${{ inputs.fail-on-errors }}
         INPUT_WORKING-DIRECTORY: ${{ inputs.working-directory }}
+        INPUT_CACHE-ENABLED: ${{ inputs.cache-enabled }}
+        INPUT_CACHE-KEY-PREFIX: ${{ inputs.cache-key-prefix }}
+        INPUT_CACHE-COMPOSER-CACHE: ${{ inputs.cache-composer-cache }}
+        INPUT_CACHE-COMPOSER-VENDOR: ${{ inputs.cache-composer-vendor }}
+        INPUT_CACHE-NPM-CACHE: ${{ inputs.cache-npm-cache }}
+        INPUT_CACHE-NODE-MODULES: ${{ inputs.cache-node-modules }}
       run: node ${{ github.action_path }}/dist/index.js
